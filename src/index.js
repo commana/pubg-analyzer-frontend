@@ -12,7 +12,7 @@ function Square(props) {
     </button>
     );
 }
-  
+
 class Board extends React.Component {
   renderSquare(i, isWinningSquare) {
     return <Square
@@ -151,6 +151,8 @@ class Game extends React.Component {
       let status;
       if (winner) {
           status = 'Winner: ' + current.squares[winner[0]];
+      } else if (this.state.stepNumber === (this.props.boardSize*this.props.boardSize)) {
+          status = 'It is a draw!';
       } else {
           status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
       }
