@@ -179,12 +179,74 @@ class Game extends React.Component {
     );
   }
 }
+
+class MatchHistory extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      playerName: '',
+      platform: 'xbox'
+    };
+
+    this.handleSubmit = this.handleSubmit.bind(this);
+    this.handleNameChange = this.handleNameChange.bind(this);
+    this.handlePlatformChange = this.handlePlatformChange.bind(this);
+  }
+
+  handleSubmit(event) {
+    event.preventDefault();
+
+    console.log("Loading recent matches for", this.state);
+  }
+
+  handleNameChange(event) {
+    this.setState({
+      playerName: event.target.value
+    });
+  }
+
+  handlePlatformChange(event) {
+    this.setState({
+      platform: event.target.value
+    });
+  }
+
+  render() {
+    return (
+      <div>
+      <form onSubmit={this.handleSubmit}>
+        <input
+          type='text'
+          name='playerName'
+          id='playerName'
+          onChange={this.handleNameChange}
+          value={this.state.playerName} />
+        <label htmlFor='playerName'>Player Name</label>
+        <select id='platform' name='platform' onChange={this.handlePlatformChange}>
+          <option value='xbox'>Xbox</option>
+          <option value='ps'>PlayStation</option>
+          <option value='steam'>Steam</option>
+          <option value='kakao'>Kakao</option>
+        </select>
+        <label htmlFor='platform'>Platform</label>
+        <input type='submit' />
+      </form>
+      </div>
+    );
+  }
+}
   
 // ========================================
 
 ReactDOM.render(
   <Game boardSize="3"/>,
   document.getElementById('root')
+);
+
+ReactDOM.render(
+  <MatchHistory />,
+  document.getElementById('matchRoot')
 );
 
 function calculateWinner(squares) {
