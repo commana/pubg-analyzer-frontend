@@ -18,24 +18,30 @@ class Board extends React.Component {
       />;
   }
 
+  renderRows() {
+    const rows = [];
+    for (let i=0; i < this.props.boardSize; i++) {
+      rows.push(
+        <div className="board-row">
+          {this.renderCol(i)}
+        </div>
+      );
+    }
+    return rows;
+  }
+
+  renderCol(row) {
+    const cols = [];
+    for (let i=0; i < this.props.boardSize; i++) {
+      cols.push(this.renderSquare(row * this.props.boardSize + i));
+    }
+    return cols;
+  }
+
   render() {
     return (
       <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
+        {this.renderRows()}
       </div>
     );
   }
@@ -44,7 +50,6 @@ class Board extends React.Component {
 class Game extends React.Component {
   constructor(props) {
       super(props);
-      this.boardSize = props.boardSize;
       this.state = {
         history: [{
             squares: Array(9).fill(null),
@@ -66,8 +71,8 @@ class Game extends React.Component {
         history: history.concat([{
             squares: squares,
             position: {
-              col: i % this.boardSize,
-              row: Math.floor(i / this.boardSize)
+              col: i % this.props.boardSize,
+              row: Math.floor(i / this.props.boardSize)
             }
         }]),
         stepNumber: history.length,
@@ -113,6 +118,7 @@ class Game extends React.Component {
       <div className="game">
         <div className="game-board">
           <Board
+              boardSize={this.props.boardSize}
               squares={current.squares}
               onClick={(i) => this.handleClick(i)}
           />
