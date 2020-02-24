@@ -52,3 +52,7 @@ ol, ul {
 .bold {
   font-weight: bold;
 }
+
+.winning {
+  color: red;
+}
