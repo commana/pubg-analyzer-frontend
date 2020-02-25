@@ -1,5 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Link,
+  useParams
+} from "react-router-dom";
+import { withRouter } from "react-router";
 import './index.css';
 
 function Square(props) {
@@ -241,12 +249,67 @@ class RecentMatches extends React.Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      matches: []
-    };
+    // Prevent name clash between a react router "match" and our PUBG matches...
+    this.route = this.props.match;
   }
 
-  fetch() {
+  hasPlayer() {
+    return this.props.player.name.length !== 0;
+  }
+
+  render() {
+    if (!this.hasPlayer()) {
+      return <div></div>;
+    }
+
+    const matches = this.props.matches.map((match, index) => {
+      const mode = match.gameMode.includes('-fpp') ? 'FPP' : 'TPP';
+      return <li key={match.id}><Link to={`/matches/${match.id}`}>{match.gameMode} {mode} on {match.mapName}: Rank: {match.playerRank}/{match.playerCount} at {match.createdAt}</Link></li>
+    });
+
+    const player = this.props.player.name + ' @ ' + this.props.player.platform;
+    return (
+      <div>
+        <Switch>
+          <Route path={`${this.route.path}/:matchId`}>
+            <Match />
+          </Route>
+          <Route path={this.route.path}>
+            <span>Results for {player}</span>
+            <ol>{matches}</ol>
+          </Route>
+        </Switch>
+      </div>
+    );
+  }
+}
+const RecentMatchesWithRouter = withRouter(RecentMatches);
+
+function Match() {
+  let { matchId } = useParams();
+  return <h2>Match: {matchId}</h2>;
+}
+
+class PubgAnalyzer extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      player: {
+        name: '',
+        platform: ''
+      },
+      matches: []
+    };
+    this.handlePlayerChange = this.handlePlayerChange.bind(this);
+  }
+
+  handlePlayerChange(player) {
+    this.setState({player: player});
+    this.fetchRecentMatches();
+  }
+
+  fetchRecentMatches() {
     // TODO: Exchange with real REST API
     const response = new Promise((resolve, reject) => {
       window.setTimeout(() => {
@@ -315,57 +378,21 @@ class RecentMatches extends React.Component {
     });
   }
 
-  componentDidUpdate(nextProps) {
-    this.fetch();
-  }
-
-  hasPlayer() {
-    return this.props.player.name.length !== 0;
-  }
-
-  render() {
-    if (!this.hasPlayer()) {
-      return <div></div>;
-    }
-
-    const matches = this.state.matches.map((match, index) => {
-      const mode = match.gameMode.includes('-fpp') ? 'FPP' : 'TPP';
-      return <li key={match.id}>{match.gameMode} {mode} on {match.mapName}: Rank: {match.playerRank}/{match.playerCount} at {match.createdAt}</li>
-    });
-
-    const player = this.props.player.name + ' @ ' + this.props.player.platform;
-    return (
-      <div>
-        <span>Results for {player}</span>
-        <ol>{matches}</ol>
-      </div>
-    );
-  }
-}
-
-class PubgAnalyzer extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      player: {
-        name: '',
-        platform: ''
-      }
-    };
-    this.handlePlayerChange = this.handlePlayerChange.bind(this);
-  }
-
-  handlePlayerChange(player) {
-    this.setState({player: player});
-  }
-
   render() {
     return (
-      <React.Fragment>
-        <PlayerSelection onPlayerChange={this.handlePlayerChange}/>
-        <RecentMatches player={this.state.player}/>
-      </React.Fragment>
+      <Router>
+        <Switch>
+          <Route path='/matches'>
+            <RecentMatchesWithRouter player={this.state.player} matches={this.state.matches}/>
+          </Route>
+          <Route path='/'>
+            <React.Fragment>
+              <PlayerSelection onPlayerChange={this.handlePlayerChange}/>
+              <RecentMatchesWithRouter player={this.state.player} matches={this.state.matches}/>
+            </React.Fragment>
+          </Route>
+        </Switch>
+      </Router>
     );
   }
 }
