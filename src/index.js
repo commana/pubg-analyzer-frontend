@@ -316,9 +316,9 @@ class PubgAnalyzer extends React.Component {
         resolve([
           {
             id: "98118f0a-28ae-483b-8bf0-9ff6812ce922",
-            gameMode: "duo",
+            gameMode: "duo", // https://github.com/pubg/api-assets/blob/master/dictionaries/gameMode.json
             createdAt: "2020-02-24T23:53:38Z",
-            mapName: "Summerland_Main",
+            mapName: "Summerland_Main", // https://github.com/pubg/api-assets/blob/master/dictionaries/telemetry/mapName.json
             playerRank: 2,
             playerCount: 99, // derived from the number of "participants" received => this is the total number of players the game started with
           }/*{
