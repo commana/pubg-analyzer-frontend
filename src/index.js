@@ -4,8 +4,7 @@ import {
   BrowserRouter as Router,
   Switch,
   Route,
-  Link,
-  useParams
+  Link
 } from "react-router-dom";
 import { withRouter } from "react-router";
 import './index.css';
@@ -257,6 +256,21 @@ class RecentMatches extends React.Component {
     return this.props.player.name.length !== 0;
   }
 
+  getStreamingLogo(platformString) {
+    switch (platformString) {
+      case "mixer":
+        return "<MixerLogo>";
+      case "twitch":
+        return "<TwitchLogo>";
+      case "youtube":
+        return "<YTLogo>";
+      case "dlive":
+        return "<DLiveLogo>";
+      default:
+        return "<Unknown Platform>";
+    }
+  }
+
   render() {
     if (!this.hasPlayer()) {
       return <div></div>;
@@ -264,31 +278,101 @@ class RecentMatches extends React.Component {
 
     const matches = this.props.matches.map((match, index) => {
       const mode = match.gameMode.includes('-fpp') ? 'FPP' : 'TPP';
-      return <li key={match.id}><Link to={`/matches/${match.id}`}>{match.gameMode} {mode} on {match.mapName}: Rank: {match.playerRank}/{match.playerCount} at {match.createdAt}</Link></li>
+      const streamingLogo = this.getStreamingLogo(match.streamingPlatform);
+      const linktext = `${match.gameMode} ${mode} on ${match.mapName}: Rank: ${match.playerRank}/${match.playerCount} at ${match.createdAt} (${streamingLogo})`;
+      return (
+        <li key={match.id}>
+          <Link to={`/matches/${this.props.player.platform}/${this.props.player.name}/${match.id}`}>{linktext}</Link>
+        </li>);
     });
 
     const player = this.props.player.name + ' @ ' + this.props.player.platform;
     return (
       <div>
-        <Switch>
-          <Route path={`${this.route.path}/:matchId`}>
-            <Match />
-          </Route>
-          <Route path={this.route.path}>
-            <span>Results for {player}</span>
-            <ol>{matches}</ol>
-          </Route>
-        </Switch>
+        <h2>Results for {player}</h2>
+        <ol>{matches}</ol>
       </div>
     );
   }
 }
 const RecentMatchesWithRouter = withRouter(RecentMatches);
 
-function Match() {
-  let { matchId } = useParams();
-  return <h2>Match: {matchId}</h2>;
+class Match extends React.Component {
+  constructor(props) {
+    super(props);
+    this.matchId = this.props.match.params.matchId;
+    this.player = this.props.match.params.player;
+    this.platform = this.props.match.params.platform;
+    
+    this.state = {
+      loading: true,
+    }
+  }
+
+  componentDidMount() {
+    const response = fakeJax({
+      summary: {
+
+      },
+      events: [
+        {
+          type: "match_start",
+          matchTimeInSeconds: 60
+        },
+        {
+          type: "kill",
+          matchTimeInSeconds: 500,
+          victim: "Dude A",
+          damage: {},
+          clip: {
+            url: "https://via.placeholder.com/150.png?text=Clip+GIF",
+          }
+        }
+      ]
+    });
+    response.then((data) => {
+      this.setState({loading: false, matchData: data});
+    });
+  }
+
+  render() {
+    const header = <h2>Match Details for {this.player}</h2>;
+    if (this.state.loading) {
+      return (
+        <div>
+          {header}
+          <div>Loading Spinner....</div>
+        </div>
+      );
+    }
+
+    const events = this.state.matchData.events.map((event) => {
+      let timeline = `${event.matchTimeInSeconds} ${event.type}`;
+      let statsBox = '';
+      let clipBox = '';
+      if (event.type === 'kill') {
+        timeline += ` ${event.victim}`;
+        statsBox = <div>Damage stats go here...</div>
+        clipBox = <div><img src={event.clip.url} alt=''/></div>
+      }
+      return (
+        <div key={event.matchTimeInSeconds}>
+          <span>{timeline}</span>
+          {statsBox}
+          {clipBox}
+        </div>
+      );
+    });
+
+    return (
+      <div>
+        {header}
+        {events}
+      </div>
+    );
+  }
 }
+const MatchWithRouter = withRouter(Match);
 
 class PubgAnalyzer extends React.Component {
   constructor(props) {
@@ -311,65 +395,24 @@ class PubgAnalyzer extends React.Component {
 
   fetchRecentMatches() {
     // TODO: Exchange with real REST API
-    const response = new Promise((resolve, reject) => {
-      window.setTimeout(() => {
-        resolve([
+    const response = fakeJax([
           {
             id: "98118f0a-28ae-483b-8bf0-9ff6812ce922",
-            gameMode: "duo", // https://github.com/pubg/api-assets/blob/master/dictionaries/gameMode.json
+            /** https://github.com/pubg/api-assets/blob/master/dictionaries/gameMode.json */
+            gameMode: "duo",
             createdAt: "2020-02-24T23:53:38Z",
-            mapName: "Summerland_Main", // https://github.com/pubg/api-assets/blob/master/dictionaries/telemetry/mapName.json
+            /** https://github.com/pubg/api-assets/blob/master/dictionaries/telemetry/mapName.json */
+            mapName: "Summerland_Main",
             playerRank: 2,
-            playerCount: 99, // derived from the number of "participants" received => this is the total number of players the game started with
-          }/*{
-          id: "98118f0a-28ae-483b-8bf0-9ff6812ce922",
-          // Attributes from PUBG Match Object
-          "attributes": {
-            "duration": 1022,
-            "gameMode": "duo",
-            "titleId": "bluehole-pubg",
-            "shardId": "console",
-            "seasonState": "progress",
-            "createdAt": "2020-02-24T23:53:38Z",
-            "stats": null,
-            "tags": null,
-            "mapName": "Summerland_Main",
-            "isCustomMatch": false,
-            "matchType": "official"
-          },
-          // Attributes from the PUBG Participant Object
-          player: {
-            "stats": {
-              "DBNOs": 2,
-              "assists": 2,
-              "boosts": 5,
-              "damageDealt": 488.77005,
-              "deathType": "byplayer",
-              "headshotKills": 2,
-              "heals": 4,
-              "killPlace": 2,
-              "killStreaks": 2,
-              "kills": 5,
-              "longestKill": 156.42525,
-              "name": "Brentarus",
-              "playerId": "account.77c28a814fa142d7af605bd3c3700eae",
-              "revives": 1,
-              "rideDistance": 0,
-              "roadKills": 0,
-              "swimDistance": 0,
-              "teamKills": 0,
-              "timeSurvived": 1014.413,
-              "vehicleDestroys": 0,
-              "walkDistance": 2118.3516,
-              "weaponsAcquired": 6,
-              "winPlace": 2
-            },
-            "actor": "",
-            "shardId": "xbox"
+            /** Derived from the number of "participants" received => this is the total number of players the game started with */
+            playerCount: 99,
+            /** On which platform did we detect a suitable stream recording for this match?
+             * This should be based on scanning the platforms for a player with the given name,
+             * and checking if they have recording that encompasses the time of the match.
+             * (mixer|twitch|youtube|dlive|...) */
+            streamingPlatform: "mixer",
           }
-        }*/]);
-      }, Math.random * 1000 + 500);
-    });
+    ]);
 
     response.then((matches) => {
       this.setState({matches: matches});
@@ -382,8 +425,8 @@ class PubgAnalyzer extends React.Component {
     return (
       <Router>
         <Switch>
-          <Route path='/matches'>
-            <RecentMatchesWithRouter player={this.state.player} matches={this.state.matches}/>
+          <Route exact path='/matches/:platform/:player/:matchId' location={{state:this.state}}>
+            <MatchWithRouter />
           </Route>
           <Route path='/'>
             <React.Fragment>
@@ -396,6 +439,7 @@ class PubgAnalyzer extends React.Component {
     );
   }
 }
+const PubgAnalyzerWithRouter = withRouter(PubgAnalyzer);
   
 // ========================================
 
@@ -405,7 +449,7 @@ ReactDOM.render(
 );
 
 ReactDOM.render(
-  <PubgAnalyzer />,
+  <Router><PubgAnalyzerWithRouter /></Router>,
   document.getElementById('matchRoot')
 );
 
@@ -427,4 +471,12 @@ function calculateWinner(squares) {
         }
     }
     return null;
+}
+
+function fakeJax(data) {
+  return new Promise((resolve, reject) => {
+    window.setTimeout(() => {
+      resolve(data);
+    }, Math.random * 1000 + 500);
+  });
 }
