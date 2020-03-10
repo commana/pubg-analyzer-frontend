@@ -243,12 +243,21 @@ class Match extends React.Component {
 }
 const MatchWithRouter = withRouter(Match);
 
+const marker = {
+  start: 90,
+  stop: 100,
+  handler: e => {
+    if (e.target.currentTime >= marker.stop) {
+      e.target.pause();
+      e.target.removeEventListener(e.type, marker.handler);
+    }
+  }
+};
+
 class MyHlsPlayer extends React.Component {
   constructor(props) {
     super(props);
-    this.hls = new Hls({
-      startPosition: 1024
-    });
+    this.hls = new Hls();
     this.player = null;
     console.log("Player!");
   }
@@ -260,14 +269,16 @@ class MyHlsPlayer extends React.Component {
         console.log("Yay!");
         this.hls.loadSource("https://vodcontent-2003.xboxlive.com/channel-47094669-public/a9ac4879-3ab2-4d32-a32c-1176c6e00ff4/manifest.m3u8");
         this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-          console.log("manifest loaded, found " + data.levels.length + " quality level");
+          this.player.controls = true;
+          this.player.currentTime = 90;
+          this.player.addEventListener('timeupdate', marker.handler);
         });
       });
     }
   }
 
   render() {
-    return <video ref={player => this.player = player}></video>
+    return <video className='clip-player' ref={player => this.player = player}>{this.props.children}</video>
   }
 }
 
