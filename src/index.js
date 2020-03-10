@@ -7,6 +7,7 @@ import {
   Link
 } from "react-router-dom";
 import { withRouter } from "react-router";
+import Hls from 'hls.js';
 import './index.css';
 
 const BACKEND_URL = "http://localhost:8080";
@@ -208,7 +209,13 @@ class Match extends React.Component {
       if (clip.state !== "AVAILABLE") {
         return "";
       }
-      return <video src={`${BACKEND_URL}${clip.url}`}>No video support. :-(</video>
+      return (
+        <div>
+          <div><button type="button">Connect with previous event</button><button type="button">-5s</button><button type="button">Reset</button></div>
+          <MyHlsPlayer class="clip-player" src={`${BACKEND_URL}${clip.url}`}>No video support. :-(</MyHlsPlayer>
+          <div><button type="button">Connect with next event</button><button type="button">+5s</button><button type="button">Reset</button></div>
+        </div>
+      )
     });
 
     const events = this.state.matchData.events.map((event, index) => {
@@ -235,6 +242,34 @@ class Match extends React.Component {
   }
 }
 const MatchWithRouter = withRouter(Match);
+
+class MyHlsPlayer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.hls = new Hls({
+      startPosition: 1024
+    });
+    this.player = null;
+    console.log("Player!");
+  }
+
+  componentDidMount() {
+    if (Hls.isSupported && this.player) {
+      this.hls.attachMedia(this.player);
+      this.hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        console.log("Yay!");
+        this.hls.loadSource("https://vodcontent-2003.xboxlive.com/channel-47094669-public/a9ac4879-3ab2-4d32-a32c-1176c6e00ff4/manifest.m3u8");
+        this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+          console.log("manifest loaded, found " + data.levels.length + " quality level");
+        });
+      });
+    }
+  }
+
+  render() {
+    return <video ref={player => this.player = player}></video>
+  }
+}
 
 class PubgAnalyzer extends React.Component {
   constructor(props) {
