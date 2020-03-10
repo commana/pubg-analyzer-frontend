@@ -133,6 +133,22 @@ class Match extends React.Component {
     }
   }
 
+  fetchClips() {
+    window.fetch(`${BACKEND_URL}/clips/${this.platform}/${this.player}/${this.matchId}`)
+      .then((response) => {
+        if (response.ok !== false) {
+          return response.json();
+        }
+      })
+      .then((data) => {
+        this.setState(prevState => {
+          let matchData = Object.assign({}, prevState.matchData);
+          matchData.clips = data;
+          return { matchData };
+        });
+      });
+  }
+
   componentDidMount() {
     window.fetch(`${BACKEND_URL}/matches/${this.platform}/${this.player}/${this.matchId}`)
       .then((response) => {
@@ -142,6 +158,18 @@ class Match extends React.Component {
       })
       .then((data) => {
         this.setState({loading: false, matchData: data});
+
+        // TODO: Handle cases where clips are in NOT_FOUND state
+        const hasPending = c => c.map(a => a.state).reduce((a,b) => a || b === "PENDING", false);
+        if (hasPending(data.clips)) {
+          const id = setInterval(() => {
+            this.fetchClips();
+
+            if (!hasPending(this.state.matchData.clips)) {
+              clearInterval(id);
+            }
+          }, 1000);
+        }
       });
     /*{
       summary: {
@@ -176,21 +204,24 @@ class Match extends React.Component {
       );
     }
 
-    const events = this.state.matchData.events.map((event) => {
+    const clips = this.state.matchData.clips.map((clip) => {
+      if (clip.state !== "AVAILABLE") {
+        return "";
+      }
+      return <video src={`${BACKEND_URL}${clip.url}`}>No video support. :-(</video>
+    });
+
+    const events = this.state.matchData.events.map((event, index) => {
       let timeline = `${event.timestamp} ${event['@type']}`;
       let statsBox = '';
-      let clipBox = '';
       if (event['@type'].includes('Kill')) {
-        event.clip = { url: "https://via.placeholder.com/150.png?text=Clip+GIF"};
         timeline += ` ${event.victim}`;
         statsBox = <div>Damage stats go here...</div>
-        clipBox = <div><img src={event.clip.url} alt=''/></div>
       }
       return (
         <div key={event.timestamp}>
           <span>{timeline}</span>
-          {statsBox}
-          {clipBox}
+          {statsBox}{clips[index]}
         </div>
       );
     });
